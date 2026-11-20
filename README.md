@@ -54,6 +54,19 @@ python examples/slime_chibi_demo/build_demo_light.py
 #    examples/slime_chibi_demo/build_light/slime-chibi.ap3d
 ```
 
+### 実験ライン：three.js メッシュ版（`build_demo_mesh.py`）
+
+追加ビルダー [`examples/slime_chibi_demo/build_demo_mesh.py`](./examples/slime_chibi_demo/build_demo_mesh.py) は、同じスライムデモをスプライトスタッキングではなく **本物のポリゴンメッシュ** として再描画する実験的なプルーフ・オブ・コンセプトです。パイプラインは、解析 SDF → サーフェスネッツでメッシュ抽出 → 頂点クラスタリングで間引き → Taubin 平滑化＋SDF 表面への Newton 再投影（ボクセル由来の段々を除去）→ SDF 勾配法線 → 三角形の巻き方向修復 → 2 色アルベド＋wrap ランプのトゥーンライティング＋投影式フェイスデカール、という構成で、表示は上記スタッキング版と同じ純正プレイヤー UI に載せています。three.js は [`build_threejs/three.min.js`](./build_threejs/three.min.js)（r128 UMD、MIT）にピン留めし、メッシュ抽出・平滑化のヘルパーは [`build_demo_threejs.py`](./examples/slime_chibi_demo/build_demo_threejs.py) に分離しています。
+
+```bash
+# three.js メッシュ版（実験ライン）。依存: numpy / pillow / scipy
+python examples/slime_chibi_demo/build_demo_mesh.py
+# -> examples/slime_chibi_demo/build_mesh/slime-chibi-standalone.html
+#    （単一 HTML のみ。.ap3d は出力しません）
+```
+
+実測した出力 HTML は **約 4.65 MB** です。ステータスは正直に書くと実験段階で、対象はスライムデモのみ・モーションは bounce のみです。本リポジトリの本線は上記のスプライトスタッキング（スムーズレンダリング）版であり、メッシュ版はその代替ではありません。
+
 ---
 
 元イラストの顔周り・表情を崩さず **360° 滑らかに回転**させ、**3D 相棒キャラの前後 Z ソート**、**頭上の吹き出しミーム演出**、**3D 海／属性パーティクル攻撃エフェクト** までを、外部通信ゼロの単一 HTML ファイルとして出力できる汎用フレームワーク＆ AI エージェントスキルです。

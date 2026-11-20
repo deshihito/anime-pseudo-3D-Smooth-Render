@@ -8,3 +8,4 @@ dist/
 *.standalone.html
 examples/*/build/
 examples/*/build_light/
+examples/*/build_mesh/
