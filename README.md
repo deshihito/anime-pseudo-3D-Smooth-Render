@@ -1,1 +1,286 @@
-# anime-pseudo-3D-Smooth-Render
+<div align="center">
+
+<img src="assets/icon.png" alt="Anime Pseudo-3D Logo" width="144" />
+
+# Anime Pseudo-3D
+
+**高精細 160 層 × 24 FPS アニメ調疑似 3D（スプライトスタッキング）制作スキル ＆ キャラ非依存 WebGL 2-Pass 表示エンジン**
+
+<p>
+  <img src="https://img.shields.io/badge/Engine-WebGL%202--Pass-2e7df6?style=flat-square" alt="WebGL 2-Pass" />
+  <img src="https://img.shields.io/badge/Slices-160%20(320%20Sub--Slices)-00b8e6?style=flat-square" alt="160 Slices" />
+  <img src="https://img.shields.io/badge/Animation-24%20FPS%20FK%2FIK-6c5ce7?style=flat-square" alt="24 FPS FK/IK" />
+  <img src="https://img.shields.io/badge/Shaders-4%20Render%20Modes-0ea5e9?style=flat-square" alt="4 Render Modes" />
+  <img src="https://img.shields.io/badge/Output-Single%20HTML%20%2F%20Zero%20Deps-10b981?style=flat-square" alt="Single HTML Zero Deps" />
+  <img src="https://img.shields.io/badge/Skill-Antigravity%20%2F%20OpenClaude-ec4899?style=flat-square" alt="Agent Skill" />
+  <img src="https://img.shields.io/badge/License-MIT-f59e0b?style=flat-square" alt="MIT License" />
+</p>
+
+<p>
+  <b>🇯🇵 日本語</b> &nbsp;|&nbsp;
+  <a href="./README.en.md">🇺🇸 English</a> &nbsp;|&nbsp;
+  <a href="./README.zh-CN.md">🇨🇳 简体中文</a>
+</p>
+
+</div>
+
+---
+
+## このリポジトリについて（Smooth Render 版）
+
+本リポジトリは [kuraneko1/anime-pseudo-3d](https://github.com/kuraneko1/anime-pseudo-3d) の派生（移植）版です。オリジナルのコードとドキュメントをそのまま収録したうえで、同梱スライムデモに「スムーズレンダリング」ビルダーを追加しています。ライセンスはオリジナルと同じ MIT License です（著作権表示は [`LICENSE`](./LICENSE) を参照）。
+
+### 何が違うのか：スムーズレンダリング（`build_demo_light.py`）
+
+追加ビルダー [`examples/slime_chibi_demo/build_demo_light.py`](./examples/slime_chibi_demo/build_demo_light.py) は、解析 SDF を 128³ グリッドで生成 → ガウス平滑（σ=1.25）→ 256³ へ補間拡大した滑らかな形状フィールドから、次の変更を加えてベイクします。
+
+- **セルシェーディングのデバンディング**: オリジナルの 3 段階ハードステップ（`shade_cel_3step`）を、同じアンカー色・同じ閾値中心のまま smoothstep ランプ（半幅 0.22）に置換。体の曲面に出ていた地層状の段差模様が連続グラデーションになります（同一スライス内の色数: 4 色 → 220 色）。顔ペイント（目・ハイライト・チーク・口）は全処理の最後にシャープなマスクで適用するため、平滑化でぼやけることはありません。
+- **軽量ベイク（128 スライス × spacing 2.0）**: 256³ フィールドの偶数層だけを 128 枚ベイクし、pack の `spacing` を 2.0 に設定します。各スライスは 256 枚ベイク時と寸分違わず同じ位置に着地し、全高とフレーミングは不変です（なお spacing > 1.32 ではエンジンの 2x サブスライス補間は使われず、隙間はスライス画像同士の画面上の重なりで埋まります）。
+- **アトラスの lossy WebP 化**: キャラクターアトラスを quality 90 / method 4 で保存します（アルファはビット完全、不透明 RGB の平均誤差は約 1 LSB）。描画は renderMode 3（SILKY 3D）、`assetLinear` 有効です。
+
+**正直なトレードオフ**: 連続グラデーションはフラットなセル色より圧縮が桁違いに効きません。本リポジトリのビルダーで実測したデモ HTML は **6.60 MB**（.ap3d は 4.87 MB）で、フラットなセル色のビルドより重くなります。「軽さより滑らかさ」を取るのが本リポジトリの選択です。
+
+### ビルド方法
+
+```bash
+# オリジナル（フラットなセルシェーディング）
+python examples/slime_chibi_demo/build_demo.py
+# -> examples/slime_chibi_demo/build/slime-chibi-standalone.html
+#    examples/slime_chibi_demo/build/slime-chibi.ap3d
+
+# スムーズレンダリング版
+python examples/slime_chibi_demo/build_demo_light.py
+# -> examples/slime_chibi_demo/build_light/slime-chibi-standalone.html
+#    examples/slime_chibi_demo/build_light/slime-chibi.ap3d
+```
+
+---
+
+元イラストの顔周り・表情を崩さず **360° 滑らかに回転**させ、**3D 相棒キャラの前後 Z ソート**、**頭上の吹き出しミーム演出**、**3D 海／属性パーティクル攻撃エフェクト** までを、外部通信ゼロの単一 HTML ファイルとして出力できる汎用フレームワーク＆ AI エージェントスキルです。
+
+---
+
+## デモギャラリー（Live Demos）
+
+### 1. 同梱ミニマルデモ（[`examples/slime_chibi_demo/`](./examples/slime_chibi_demo/build_demo.py)）
+`engine/` を **1 行も編集せず** `motion_pack.json` だけで駆動する動作確認用デモ（コマンド 1 本で約 1.3 秒で単一 HTML を生成）。
+
+<table>
+  <tr>
+    <td align="center" width="33%">
+      <img src="assets/gifs/slime_360.gif" alt="360° シームレス回転デモ" width="250" /><br />
+      <b>360° シームレス回転</b><br />
+      <sub>角度量子化ゼロ・2x サブスライス補間</sub>
+    </td>
+    <td align="center" width="33%">
+      <img src="assets/gifs/slime_bounce.gif" alt="3D 相棒キャラ Z ソートデモ" width="250" /><br />
+      <b>3D 相棒 Z ソート（BOUNCE）</b><br />
+      <sub>星型 3D 相棒がカメラ角に応じ前後を周回</sub>
+    </td>
+    <td align="center" width="33%">
+      <img src="assets/gifs/slime_splash.gif" alt="3D 斬撃＆パーティクル攻撃デモ" width="250" /><br />
+      <b>属性斬撃＆3D FX（SPLASH）</b><br />
+      <sub>三日月斬撃＋3D 飛沫＋床衝撃波リング</sub>
+    </td>
+  </tr>
+</table>
+
+### 2. 4 種類のリアルタイム WebGL 質感シェーダー
+ボタン 1 つでアニメ調滑らか描画から王道ドット絵・フィギュア調までリアルタイムに切替可能。
+
+<p align="center">
+  <img src="assets/render_styles_compare.png" alt="4 Render Modes: SMOOTH AA / PIXEL+AA / RETRO PX / SILKY 3D" width="860" />
+</p>
+
+### 3. 真の 3D 正射影ピッチ（`PITCH 15°〜90°`）＆ 3 スタジオテーマ
+160 枚の 2D スライス層を GPU 上で連続回転し、**真の 3D 正射影（`y = rot.y · sin(θ) − z · cos(θ)`）** と 2 倍インターリーブ補間（計 320 層）で投影。アイレベル寄りのアニメ視点（`20°`）から 3/4 アイソメトリック（`48°`）、真上トップダウン視点（`90°`）までボディが伸びずに自然な立体感を維持します。
+
+<p align="center">
+  <img src="assets/camera_themes_demo.png" alt="True 3D Orthographic Camera Pitch (20° / 48° / 90°) & 3 Themes (ICE LAB / MIDNIGHT / DEEP SEA)" width="820" />
+</p>
+
+### 4. 本エンジン採用ショーケース（[kuraneko1/deepseek-chan-3d](https://github.com/kuraneko1/deepseek-chan-3d)）
+**DeepSeek ちゃん（クジラメイド）** および **ムキムキ DeepSeek CEO（パワータイプ・エンジン完全無改造）** の 9 モーション × 24 FPS 実作デモを公開中です。
+
+<table>
+  <tr>
+    <td align="center" width="25%">
+      <a href="https://github.com/kuraneko1/deepseek-chan-3d">
+        <img src="https://raw.githubusercontent.com/kuraneko1/deepseek-chan-3d/main/assets/gifs/demo_whale.gif" alt="DeepSeek-chan 3D Whale" width="190" />
+      </a><br />
+      <b>DeepSeek ちゃん</b><br />
+      <sub>3D クジラじゃれ合い</sub>
+    </td>
+    <td align="center" width="25%">
+      <a href="https://github.com/kuraneko1/deepseek-chan-3d">
+        <img src="https://raw.githubusercontent.com/kuraneko1/deepseek-chan-3d/main/assets/gifs/demo_vortex.gif" alt="DeepSeek-chan Vortex FX" width="190" />
+      </a><br />
+      <b>DeepSeek ちゃん</b><br />
+      <sub>深海大渦巻き 3D FX</sub>
+    </td>
+    <td align="center" width="25%">
+      <a href="https://github.com/kuraneko1/deepseek-chan-3d">
+        <img src="https://raw.githubusercontent.com/kuraneko1/deepseek-chan-3d/main/assets/gifs/ceo_flex.gif" alt="GigaChad CEO Double Bicep Flex" width="190" />
+      </a><br />
+      <b>ムキムキ CEO</b><br />
+      <sub>ダブルバイセップス</sub>
+    </td>
+    <td align="center" width="25%">
+      <a href="https://github.com/kuraneko1/deepseek-chan-3d">
+        <img src="https://raw.githubusercontent.com/kuraneko1/deepseek-chan-3d/main/assets/gifs/ceo_aura.gif" alt="GigaChad CEO Boss Aura" width="190" />
+      </a><br />
+      <b>ムキムキ CEO</b><br />
+      <sub>覚醒オーラ＋3D クジラ</sub>
+    </td>
+  </tr>
+</table>
+
+---
+
+## クレジット・影響を受けた技術（Credits & Inspiration）
+
+本リポジトリのスプライトスタッキング（積層スライスによる疑似 3D ピクセルアート）の基本発想および制作手法は、以下の記事から多大なる影響を受けています。
+
+- **[SpriteCook — Sprite stacking for fake 3D pixel art cars and props](https://www.spritecook.ai/blog/sprite-stacking-pixel-art)**
+- 汎用スプライトスタッキング基盤スキル: [kuraneko1/sprite-stacking-3d](https://github.com/kuraneko1/sprite-stacking-3d)
+
+---
+
+## アーキテクチャ（4 層分離：多面図接合・モデル制作・`.ap3d` 形式・再利用 UI ＆ WebGL エンジン）
+
+```mermaid
+flowchart LR
+  subgraph T1["toolkit/ (多面図 3D 接合 & 24FPS アニメーション制作)"]
+    MV["multiview_fitter.py (上下左右三面図分割・Z整列・Visual Hull・6面色接合)"]
+    SDF["gpu_sdf.py (CuPy GPU / NumPy CPU 自動切替 SDF)"]
+    FACE["anime_face_kit.py (元絵顔投影 & 安全表情合成)"]
+    RIG["rig_contracts.py (FK + 3D IK 統一 PoseFrame)"]
+    QA["qa_validator.py (クリップ/ループ連続性/IoU QA)"]
+    AP3D["ap3d_format.py (.ap3d バイナリ pack/unpack/merge)"]
+  end
+
+  subgraph E1["engine/ (再利用可能 WebGL 2-Pass エンジン & 汎用 UI キット)"]
+    CODEC["ap3d_codec.js (ブラウザ .ap3d 書き出し/読込/結合)"]
+    UIKIT["anime_ui_kit.js + anime_ui_theme.css (任意Nモーション汎用UI)"]
+    GL["anime_stack_engine.js (真の3D俯瞰 / 4質感 / Zソート / 動的切替)"]
+    BND["bundle_standalone.py (file:// 単一HTML & 汎用プレイヤー生成)"]
+  end
+
+  MV --> SDF
+  SDF --> QA
+  FACE --> QA
+  RIG --> SDF
+  QA -->|"motion_pack.json + WebP"| AP3D
+  AP3D -->|".ap3d"| CODEC
+  CODEC --> GL
+  UIKIT --> GL
+  GL --> BND
+```
+
+---
+
+## 主な特徴
+
+### 1. 再利用可能 WebGL 2-Pass エンジン ＆ 任意 N モーション汎用 UI（`engine/`）
+- **再利用可能なコンポーネント設計（`AnimeStackEngine` + `AnimeUIKit`）**: WebGL コア（`anime_stack_engine.js`）と 100% ピクセル純度 UI コンポーネント（`anime_ui_kit.js` / `anime_ui_theme.css`）を分離。自分の Web アプリやゲームに `mountStudioUI()` 1 行、または個別ウィジェット（スライダー・タイムライン・モーション棚・`.ap3d` ファイル IO）単位で組み込めます。
+- **アニメーション個数無制限（1〜∞ モーション対応）**: 静止モデル（1 個）から 9 個・18 個・50 個以上まで対応。カテゴリフィルタタブ（`motion.category`）、スクロール対応ピクセル棚、`<` / `>`（`[` / `]` キー）送り、実行時 `engine.addMotions()` / `engine.loadScene()` ホットリロードに対応。
+- **独自ポータブル形式 `.ap3d` の書き出し・読込・結合**: 外部 ZIP ライブラリ不要の独自バイナリコンテナ（`AP3D` v1、base64 比約 33% 軽量）。ブラウザ上の **`LOAD` / `+MOTION` / `EXPORT`** ボタンや **ステージへのドラッグ＆ドロップ** でキャラ切替・モーション追加結合・書き出しがオフライン完結します。同梱の軽量ユニバーサルプレイヤー [`examples/ap3d_player.html`](./examples/ap3d_player.html)（約 116 KB）から任意の `.ap3d` を即再生可能。
+- **真の 3D 正射影＆4 質感シェーダー**: 角度量子化ゼロの連続 0.001° GPU 回転 ＋ 真の 3D 正射影（`y = rot.y · sin θ − z · cos θ`、`PITCH 15°〜90°`・初期値 `20°`）＋ 2x インターリーブ補間（320 層）＋ 4 質感モード（`SMOOTH AA` / `PIXEL+AA` / `RETRO PX` / `SILKY 3D`）。
+- **複数 3D スタック前後 Z ソート & 宣言的 FX**: 3D 相棒モデル・吹き出し・3D パーティクルを JSON 定義のみでエンジン無改造駆動。
+
+### 2. 多面図自動接合 ＆ アニメ調 3D 制作ツールキット（`toolkit/`）
+- **`multiview_fitter.py`（新搭載・他セッション再現保証）**: 画像生成で作った `FRONT / SIDE / BACK / TOP` 三面図シートを境界フラッドフィルで白服・白目を残したまま自動分割し、Z 軸ランドマーク（頭頂・目・顎・首・肩・腰・足裏）を自動計測。Visual Hull 構築・法線重み付き **6 方向シームレス色接合**・シルエット IoU 自動 QA（`qa_3d_fit_overlay.png`）まで一気通貫で実行できます。
+- **`ap3d_format.py`**: Python CLI で `.ap3d` の `pack` / `unpack` / `inspect` / `merge`（既存キャラへ新モーションを再ベイクなしで結合）に対応。
+- **`gpu_sdf.py` / `anime_face_kit.py` / `rig_contracts.py` / `qa_validator.py` / `record_gif.py`**: CuPy GPU / NumPy CPU 自動切替 SDF、元絵顔斜め投影、FK + 3D IK 統一 `PoseFrame`、境界クリッピング検査＆最適化 GIF 録画。
+
+---
+
+## ディレクトリ構成
+
+```text
+anime-pseudo-3d/
+├── SKILL.md                      # AI エージェント向け 6 段階完全 SOP スキル定義
+├── README.md / README.en.md / README.zh-CN.md
+├── assets/                       # ロゴアイコン・デモ GIF・質感＆真 3D 俯瞰比較画像
+├── engine/
+│   ├── anime_stack_engine.js     # 再利用可能・ホットリロード対応 WebGL 2-Pass エンジン
+│   ├── anime_ui_kit.js           # 再利用可能ピクセル UI キット (任意Nモーション・.ap3d IO)
+│   ├── anime_ui_theme.css        # 100% ピクセル純度スタジオテーマ CSS (Desktop + Mobile)
+│   ├── ap3d_codec.js             # ブラウザ用 .ap3d バイナリ読み書きコーデック (依存ゼロ)
+│   ├── viewer_shell.html         # モジュラー HTML シェル
+│   ├── motion_pack.schema.json   # motion_pack.json 仕様スキーマ (v1.1)
+│   ├── bundle_standalone.py      # 単一 HTML / .ap3d / 汎用プレイヤーバンドラ
+│   └── audit_pixel_build.py      # HTML + CSS + JS ピクセル純度チェッカー
+├── toolkit/
+│   ├── multiview_fitter.py       # 上下左右多面図の自動分割・Z整列・Visual Hull・6面色接合・IoU QA
+│   ├── ap3d_format.py            # .ap3d バイナリ CLI (pack / unpack / inspect / merge)
+│   ├── gpu_sdf.py                # CuPy GPU / NumPy CPU 3D SDF プリミティブ
+│   ├── anime_face_kit.py         # 斜め顔投影 & 表情合成ヘルパー
+│   ├── rig_contracts.py          # FK/IK 統一 PoseFrame & 周期曲線
+│   ├── pixel_fx_kit.py           # ドット FX・水滴/泡/斬撃/水紋・16x16 アイコン生成
+│   ├── qa_validator.py           # 事前数理 QA + クリップ検査 + 3D QA シート
+│   └── record_gif.py             # Playwright WebGL → FFmpeg 最適化 GIF 録画
+├── examples/
+│   ├── ap3d_player.html          # 軽量ユニバーサル .ap3d プレイヤー (ドラッグ＆ドロップ対応)
+│   └── slime_chibi_demo/         # 最小構成デモ（単一 HTML + slime-chibi.ap3d 自動出力）
+└── references/
+    ├── multiview_3d_reconstruction_guide.md  # 多面図画像生成プロンプト & 3D 接合ガイド
+    ├── anime_model_guide.md                  # アニメ調モデル設計ガイド
+    ├── animation_24fps_guide.md              # 24 FPS モーション & IK ガイド
+    └── webgl_engine_guide.md                 # WebGL エンジン・AnimeUIKit・.ap3d リファレンス
+```
+
+---
+
+## クイックスタート
+
+### 1. スキルとしてインストール（Antigravity / `~/.agents/skills`）
+```bash
+git clone https://github.com/kuraneko1/anime-pseudo-3d.git ~/projects/anime-pseudo-3d
+ln -s ~/projects/anime-pseudo-3d ~/.agents/skills/anime-pseudo-3d
+```
+
+### 2. 最小デモ（単一 HTML ＋ `.ap3d`）をビルド＆ユニバーサルプレイヤーで再生
+```bash
+cd ~/projects/anime-pseudo-3d
+python3 examples/slime_chibi_demo/build_demo.py
+# -> examples/slime_chibi_demo/build/slime-chibi-standalone.html を開く、
+#    または examples/ap3d_player.html に slime-chibi.ap3d をドラッグ＆ドロップ！
+```
+
+### 3. `.ap3d` パッケージ操作 ＆ 単一 HTML バンドル
+```bash
+# モジュラー全ファイルのピクセル純度監査
+python3 engine/audit_pixel_build.py \
+  --html engine/viewer_shell.html \
+  --css engine/anime_ui_theme.css \
+  --js engine/ap3d_codec.js engine/anime_ui_kit.js engine/anime_stack_engine.js
+
+# 単一 HTML とポータブル .ap3d を同時生成
+python3 engine/bundle_standalone.py \
+  --html engine/viewer_shell.html \
+  --js engine/anime_stack_engine.js \
+  --pack your_char/motion_pack.json \
+  --assets-root your_char \
+  --export-ap3d dist/your-char.ap3d \
+  --out dist/your-char-standalone.html
+
+# 既存 .ap3d へ追加モーションを結合（再ベイク不要）
+python3 toolkit/ap3d_format.py merge \
+  --base dist/your-char.ap3d \
+  --extra dist/more-motions.ap3d \
+  --out dist/your-char-expanded.ap3d
+```
+
+---
+
+## 依存環境
+- **Python 3.10+** (`numpy`, `pillow`; NVIDIA GPU 高速ベイク時は `cupy` 自動利用)
+- **ブラウザ検証 / GIF 録画（任意）**: `playwright` + Chromium/Chrome + `ffmpeg`
+- **出力された単一 HTML**: 依存ゼロ（WebGL 対応モダンブラウザのみで完結・`file://` 直開き対応）
+
+---
+
+## License
+
+[MIT License](./LICENSE)
