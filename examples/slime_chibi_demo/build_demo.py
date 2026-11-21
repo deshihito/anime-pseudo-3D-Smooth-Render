@@ -19,7 +19,7 @@ from toolkit.gpu_sdf import (
     smin, sd_sphere, sd_ellipsoid, sd_capsule,
     compute_normals, shade_cel_3step,
 )
-from toolkit.rig_contracts import PoseFrame, volume_preserving_sx, smoothstep
+from toolkit.rig_contracts import PoseFrame
 from toolkit.pixel_fx_kit import generate_standard_fx_and_ui_pack, add_pixel_outline, draw_pattern, save_rgba
 from toolkit.qa_validator import validate_motion_poses, assert_no_border_clipping, save_tiled_webp
 from bundle_standalone import bundle_standalone

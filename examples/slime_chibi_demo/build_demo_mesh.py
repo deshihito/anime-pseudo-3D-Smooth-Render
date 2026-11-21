@@ -69,7 +69,7 @@ REPO_ROOT = os.path.abspath(os.path.join(HERE, "..", ".."))
 sys.path.insert(0, REPO_ROOT)
 sys.path.insert(0, HERE)
 
-from build_demo import evaluate_demo_pose, sculpt_star_companion  # noqa: E402
+from build_demo import evaluate_demo_pose  # noqa: E402
 from build_demo_threejs import (  # noqa: E402
     extract_mesh, taubin_smooth, fix_winding, spirit_sdf, star_sdf,
     vertex_normals,

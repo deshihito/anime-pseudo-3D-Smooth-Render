@@ -6,7 +6,6 @@ agent session can reconstruct consistent 3D proportions and seamlessly join all 
 hard seams or guessing anatomy heights.
 """
 from collections import deque
-import math
 import os
 from typing import Any
 import numpy as np
