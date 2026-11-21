@@ -87,7 +87,6 @@ def surface_nets(d):
     cell_id = -np.ones((cz_, cy_, cx_), dtype=np.int32)
     cell_id[cell_mask] = np.arange(n_cells, dtype=np.int32)
 
-    cell_shape = (cz_, cy_, cx_)
     cell_size = cz_ * cy_ * cx_
     pos_sum = np.zeros((cell_size, 3), dtype=np.float64)  # (z, y, x) index coords
     pos_cnt = np.zeros(cell_size, dtype=np.float64)

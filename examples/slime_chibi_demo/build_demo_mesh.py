@@ -1832,7 +1832,6 @@ def main():
 
     # (c2) winding audit on the shipped payload: no inward faces, positive
     # volume, complete visible surface from the canonical camera.
-    comp4_0 = None
     for k, enc in enumerate(ship["frames"]):
         p = _dec(enc["pos"], np.int16, 100.0)
         n = _dec(enc["nrm"], np.int16, 1000.0)
@@ -1846,7 +1845,6 @@ def main():
         assert inw_area < 1e-4 and vol > 0 and comp > 0.98, \
             (k, inward, inw_area, vol, comp)
         if k == 0:
-            comp4_0 = comp
             print(f"verify: frame0 winding: inward faces {inward:.5f} "
                   f"(area share {inw_area:.2e}), signed volume {vol:+.1f}, "
                   f"visible-surface completeness {comp:.3f}")

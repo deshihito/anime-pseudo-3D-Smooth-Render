@@ -36,7 +36,6 @@ def evaluate_demo_pose(motion_id: str, f: int, total: int = 24) -> PoseFrame:
             head_roll=4.5 * c, ear_flap_l=3.0 * math.sin(ph - 0.8), ear_flap_r=3.0 * math.sin(ph - 0.8),
         )
     # "splash" attack motion
-    u = f / float(total)
     w_atk = math.sin(max(0.0, min(1.0, (f - 4.0) / 12.0)) * math.pi)
     return PoseFrame(
         motion_id=motion_id, frame_idx=f, total_frames=total,
