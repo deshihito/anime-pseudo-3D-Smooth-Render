@@ -480,7 +480,6 @@ def render_multiview_fit_qa(
     """
     aligned = blueprint["aligned"]
     gy, gx, gz, _ = vol_rgba.shape
-    occ = vol_rgba[:, :, :, 3] > 128
 
     def ortho_render(axis: str) -> np.ndarray:
         if axis == "front":
